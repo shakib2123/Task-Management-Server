@@ -30,13 +30,25 @@ async function run() {
     // await client.connect();
     const taskCollection = client.db("TaskManagement").collection("tasks");
 
-    app.get("/tasks", async (req, res) => {
+    app.get("/tasks/:email", async (req, res) => {
       try {
-        const result = await taskCollection.find().toArray();
+        const email = req.params.email;
+        const query = {
+          userEmail: email,
+        };
+        const result = await taskCollection.find(query).toArray();
         res.send(result);
       } catch (error) {
         console.log(error);
       }
+    });
+
+    app.get("/tasks/:id", async (req, res) => {
+      const id = req.params.id;
+      console.log(id);
+      const query = { _id: new ObjectId(id) };
+      const result = await taskCollection.findOne(query);
+      res.send(result);
     });
 
     app.post("/tasks", async (req, res) => {
@@ -44,6 +56,32 @@ async function run() {
         const task = req.body;
         console.log(task);
         const result = await taskCollection.insertOne(task);
+        res.send(result);
+      } catch (error) {
+        console.log(error);
+      }
+    });
+
+    app.put("/tasks/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const task = req.body;
+        const filter = { _id: new ObjectId(id) };
+        const options = { upsert: true };
+        const updatedData = {
+          $set: {
+            title: task.title,
+            date: task.date,
+            description: task.description,
+            priority: task.priority,
+            status: task.status,
+          },
+        };
+        const result = await taskCollection.updateOne(
+          filter,
+          updatedData,
+          options
+        );
         res.send(result);
       } catch (error) {
         console.log(error);
@@ -61,11 +99,7 @@ async function run() {
       }
     });
 
-    // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!"
-    );
+   
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
